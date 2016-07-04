@@ -12,13 +12,12 @@ from Queue import Queue
 def processImage(img):
 
     return img
-    img = getModule("Resize")(img)
-    img = getModule("Mean")(img)
 
 
 
 
 def processWav(wavPath):
+    global i
     
     sampRate, wavData = wv.read(wavPath)
 
@@ -52,6 +51,7 @@ def generateImages(wavPaths):
 
 queue = Queue(400)
 
+CHUNKSIZE = 1024*5
 class DataGenerationThread(Thread):
 
     def __init__(self, wpaths):
@@ -60,16 +60,29 @@ class DataGenerationThread(Thread):
 
     def run(self):
         global queue
+        
+        cachedData = {}
 
         while True:
-
+            chunk = []
             for wavPath in self.wavPaths:
                 try:
                     label = getLabel(wavPath)
-                    for img in processWav(wavPath):
-                        queue.put((img, label))
-                except:
-                    print "Error processing file %s" % wavPath
+                    if wavPath in cachedData.keys():
+                        imgs = cachedData[wavPath]
+                    else:
+                        imgs = processWav(wavPath)
+                        cachedData[wavPath] = imgs
+
+                    for img in imgs:
+                        chunk.append((img, label))
+                        if len(chunk) == CHUNKSIZE:
+                            queue.put(chunk)
+                            chunk = []
+
+                except Exception, e:
+                    # print "Error: %s\nprocessing file %s" % (e, wavPath)
+                    pass
 
 
 
@@ -80,12 +93,12 @@ IMG_HEIGHT = int(config["height"])
 
 def make_trainable(val):
 
-    Y = np_utils.to_categorical([val[1]], 10)
-
+    Y = np_utils.to_categorical([val[1]], int(config["classes"]) )[0]
     img = val[0]
-    img = cv2.resize(img, (IMG_WIDTH, IMG_HEIGHT), interpolation = cv2.INTER_LINEAR)
-    img = img.reshape((img.shape[0], img.shape[1], 1)).astype("float32")
+    img = cv2.resize(img, (IMG_HEIGHT, IMG_WIDTH), interpolation = cv2.INTER_LINEAR)
+    img = img.reshape((img.shape[0], img.shape[1], int(config["channels"]) )).astype("float32")
     X = np.rollaxis(img, 2)
+    X = X/ 255.0
 
     return X, Y
 
@@ -103,25 +116,35 @@ def batch_generator(bsize, wavs):
     dth.start()
 
     while True:
-
-        X_train = []
-        Y_train = []
         
-        for i in range(bsize):
 
-            val = queue.get()
-            queue.task_done()
+        vals = queue.get()
+        queue.task_done()
+        random.shuffle(vals)
+        
+        j = 0
 
-            X, Y = make_trainable(val)
-            X_train.append(X)
-            Y_train.append(Y)
+        while j < len(vals):
+            X_train = []
+            Y_train = []
+            for i in range(bsize):
 
-        both = zip(X_train, Y_train)
-        random.shuffle(both)
-        X_train = zip(*both)[0]
-        Y_train = zip(*both)[1]
+                val = vals[j]
+                j+=1
+                # val = queue.get()
+                # queue.task_done()
 
-        yield np.array(X_train, dtype="float32"), np.array(Y_train, dtype="int")
+                X, Y = make_trainable(val)
+                X_train.append(X)
+                Y_train.append(Y)
+
+            #
+            # both = zip(X_train, Y_train)
+            # random.shuffle(both)
+            # X_train = zip(*both)[0]
+            # Y_train = zip(*both)[1]
+
+            yield np.array(X_train, dtype="float32"), np.array(Y_train, dtype="int")
 
 
 
