@@ -2,15 +2,15 @@ from flask import request,Flask, url_for
 
 app = Flask(__name__)
 
-from predict import predict, updateWeight
+from eval import predict, updateWeight
 
-FNAME = "tmp.png"
+FNAME = "tmp.wav"
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
         print "PROCESSING CLASSIFICATION REQUEST"
-        f = request.files['img']
+        f = request.files['wav']
         f.save(FNAME)
         return str(predict(FNAME))
 
@@ -20,8 +20,8 @@ def index():
 
 @app.route('/update')
 def update():
-    updateWeight()
-    return 'updated'
+    num = updateWeight()
+    return "updated to %d" % num
 
 if __name__ == "__main__":
     app.run(host = '0.0.0.0')

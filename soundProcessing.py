@@ -7,13 +7,9 @@ import numpy as np
 import cv2, os
 from Queue import Queue
 
-
-
 def processImage(img):
 
     return img
-
-
 
 
 def processWav(wavPath):
@@ -52,6 +48,21 @@ def generateImages(wavPaths):
 queue = Queue(400)
 
 CHUNKSIZE = 1024*5
+import hashlib
+
+def getImageCacheFileName():
+
+    infos = "%s_%s_%s_%s_%s" % (
+            config["height"], 
+            config["width"],
+            config["channels"],
+            config["wavToImage"],
+            config["wavVariations"],
+    )
+    hashVal = hashlib.sha224(infos).hexdigest()
+    cacheFile = os.path.join("imageCaches", "%s.npy" % hashVal)
+    return cacheFile
+
 class DataGenerationThread(Thread):
 
     def __init__(self, wpaths):
@@ -60,11 +71,18 @@ class DataGenerationThread(Thread):
 
     def run(self):
         global queue
-        
-        cachedData = {}
 
+        cacheFile = getImageCacheFileName()
+        
+        try:
+            cachedData = np.load(cacheFile)
+            cachedData = cachedData[()]
+            print "Loaded Image cache"
+        except:
+            cachedData = {}
+
+        chunk = []
         while True:
-            chunk = []
             for wavPath in self.wavPaths:
                 try:
                     label = getLabel(wavPath)
@@ -83,6 +101,11 @@ class DataGenerationThread(Thread):
                 except Exception, e:
                     # print "Error: %s\nprocessing file %s" % (e, wavPath)
                     pass
+
+            if os.path.isfile(cacheFile) == False:
+                np.save(cacheFile, cachedData)
+
+
 
 
 
@@ -131,18 +154,10 @@ def batch_generator(bsize, wavs):
 
                 val = vals[j]
                 j+=1
-                # val = queue.get()
-                # queue.task_done()
-
                 X, Y = make_trainable(val)
                 X_train.append(X)
                 Y_train.append(Y)
 
-            #
-            # both = zip(X_train, Y_train)
-            # random.shuffle(both)
-            # X_train = zip(*both)[0]
-            # Y_train = zip(*both)[1]
 
             yield np.array(X_train, dtype="float32"), np.array(Y_train, dtype="int")
 

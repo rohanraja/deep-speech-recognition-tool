@@ -5,6 +5,7 @@ from soundProcessing import batchgen_and_numsamples
 from model import getModel
 
 from keras import callbacks
+import os
 
 
 bgen, numSamps = batchgen_and_numsamples()
@@ -14,9 +15,8 @@ model = getModel()
 
 class SaveEpoch(callbacks.Callback):
     def on_epoch_end(self, epch, thrd = {}):
-
-        return
-        model.save_weights("savedModel_%d"%epch, overwrite=True)
+        model.save_weights(os.path.join(config["projectDir"], "savedModel_%d"%epch), 
+                overwrite=True)
 
 
 model.fit_generator(bgen,
