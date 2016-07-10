@@ -6,7 +6,7 @@ from eval import predict, updateWeight
 
 FNAME = "tmp.wav"
 
-@app.route('/upload', methods=['GET', 'POST'])
+@app.route('/upload', methods=['GET', 'POST', 'OPTIONS'])
 def upload_file():
     if request.method == 'POST':
         print "PROCESSING CLASSIFICATION REQUEST"
@@ -20,7 +20,13 @@ def index():
 
 @app.route('/update')
 def update():
-    num = updateWeight()
+
+    try:
+        wid = int(request.args.get('q'))
+        num = updateWeight(wid)
+    except:
+
+        num = updateWeight()
     return "updated to %d" % num
 
 if __name__ == "__main__":

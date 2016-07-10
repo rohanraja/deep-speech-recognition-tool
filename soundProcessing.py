@@ -75,6 +75,7 @@ class DataGenerationThread(Thread):
         cacheFile = getImageCacheFileName()
         
         try:
+            print "Trying to load cache file"
             cachedData = np.load(cacheFile)
             cachedData = cachedData[()]
             print "Loaded Image cache"

@@ -2,7 +2,8 @@ from module import Module
 import scipy.io.wavfile as w
 import numpy as np
 
-offsets = [0,0.5, -0.5, 0.25, -0.25]
+# offsets = [0,0.5, -0.5, 0.25, -0.25]
+offsets = [0]
 volumes = [1,2]
 bgFile = "bgNoise.wav"
 bgsamp, bgdata = w.read(bgFile)

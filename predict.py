@@ -26,7 +26,11 @@ def predict(imgpath):
     pred = model.predict(x)
 
     # return str(pred[1][0].argmax())
-    return str(pred[0].argmax())
+    out = str(pred[0].argmax())
+    
+    print "Result %s" % out
+
+    return out
     
 
 def updateWeight():
